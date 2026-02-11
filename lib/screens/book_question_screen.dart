@@ -63,9 +63,7 @@ class _BookQuestionScreenState extends State<BookQuestionScreen> {
     if (node == null) {
       return Scaffold(
         appBar: AppBar(),
-        body: const Center(
-          child: Text('오류: 질문을 찾을 수 없습니다.'),
-        ),
+        body: const Center(child: Text('오류: 질문을 찾을 수 없습니다.')),
       );
     }
 
@@ -103,7 +101,7 @@ class _BookQuestionScreenState extends State<BookQuestionScreen> {
 
               // 질문 번호 (depth 표시)
               Text(
-                'Depth $depth/7',
+                '$depth/7',
                 style: TextStyle(
                   fontSize: 14,
                   color: Colors.grey[600],
@@ -114,14 +112,19 @@ class _BookQuestionScreenState extends State<BookQuestionScreen> {
               const SizedBox(height: 12),
 
               // 질문 텍스트
-              Flexible(
+              SizedBox(
+                height: 140,
                 child: SingleChildScrollView(
-                  child: Text(
-                    node.question,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      height: 1.4,
+                  child: Align(
+                    // 텍스트가 짧아도 상단에 붙게 함
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      node.question,
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        height: 1.4,
+                      ),
                     ),
                   ),
                 ),
@@ -129,14 +132,18 @@ class _BookQuestionScreenState extends State<BookQuestionScreen> {
 
               const SizedBox(height: 32),
 
-              // 선택지 버튼들
-              Expanded(
+              SizedBox(
+                height: 360,
                 child: ListView.builder(
+                  key: ValueKey(currentNodeKey),
+                  physics: depth == 1
+                      ? const ClampingScrollPhysics()
+                      : const NeverScrollableScrollPhysics(),
                   itemCount: node.options.length,
                   itemBuilder: (context, index) {
                     final option = node.options[index];
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
+                      padding: const EdgeInsets.only(bottom: 10.0),
                       child: _OptionButton(
                         text: option.text,
                         onTap: () => _handleAnswer(option),
@@ -145,6 +152,7 @@ class _BookQuestionScreenState extends State<BookQuestionScreen> {
                   },
                 ),
               ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
@@ -155,15 +163,15 @@ class _BookQuestionScreenState extends State<BookQuestionScreen> {
   // 노드 키에서 depth 추출
   int _getDepthFromNodeKey(String key) {
     if (key == 'book_root') return 1;
-    
+
     // book_sad_2_1 형식에서 숫자 추출
     RegExp regExp = RegExp(r'_(\d+)_');
     Match? match = regExp.firstMatch(key);
-    
+
     if (match != null && match.groupCount >= 1) {
       return int.tryParse(match.group(1)!) ?? 1;
     }
-    
+
     return 1;
   }
 }
@@ -286,9 +294,7 @@ class BookResultScreen extends StatelessWidget {
             // PageView로 카드 표시
             Expanded(
               child: recommendedBooks.isEmpty
-                  ? const Center(
-                      child: Text('추천할 책을 찾지 못했습니다.'),
-                    )
+                  ? const Center(child: Text('추천할 책을 찾지 못했습니다.'))
                   : PageView.builder(
                       itemCount: recommendedBooks.length,
                       padEnds: true,
@@ -296,8 +302,9 @@ class BookResultScreen extends StatelessWidget {
                       itemBuilder: (context, index) {
                         return Center(
                           child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 8.0),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8.0,
+                            ),
                             child: _BookResultCard(
                               book: recommendedBooks[index],
                             ),
@@ -435,4 +442,3 @@ class _BookResultCard extends StatelessWidget {
     );
   }
 }
-
