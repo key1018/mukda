@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:math';
+import 'screens/book_question_screen.dart';
 
 void main() {
   runApp(const MukdaApp());
@@ -554,7 +555,7 @@ class CategoryScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const QuestionScreen(isBook: true),
+                        builder: (_) => const BookQuestionScreen(),
                       ),
                     );
                   },
