@@ -34,15 +34,14 @@ class MukdaApp extends StatelessWidget {
 
 // ==================== 데이터 모델 ====================
 
-// 책 데이터 모델
+// 책 데이터 모델 (알라딘 API 매핑)
 class Book {
   final String title;
   final String author;
   final String imageUrl;
   final String famousLine;
   final List<String> tags;
-  // TODO: 플랫폼 기능 추후 구현
-  // final List<String> availablePlatforms; // 'millie', 'aladin' 등
+  final String link; // 알라딘 도서 상세 URL
 
   Book({
     required this.title,
@@ -50,7 +49,7 @@ class Book {
     required this.imageUrl,
     required this.famousLine,
     required this.tags,
-    // this.availablePlatforms = const [],
+    this.link = '',
   });
 }
 
