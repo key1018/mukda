@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'dart:math';
 import 'screens/book_question_screen.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 void main() {
   runApp(const MukdaApp());
@@ -15,18 +16,24 @@ class MukdaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => RecommendationProvider(),
-      child: MaterialApp(
-        title: '먹다',
-        debugShowCheckedModeBanner: false,
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(
-            seedColor: const Color(0xFFFB923C), // orange-400
-            brightness: Brightness.light,
+      child: ScreenUtilInit(
+        designSize: const Size(375, 667),
+        minTextAdapt: true,
+        splitScreenMode: true,
+        builder: (context, child) => MaterialApp(
+          title: '먹다',
+          debugShowCheckedModeBanner: false,
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFFFB923C), // orange-400
+              brightness: Brightness.light,
+            ),
+            scaffoldBackgroundColor: const Color(0xFFFFFBEB), // amber-50
+            useMaterial3: true,
           ),
-          scaffoldBackgroundColor: const Color(0xFFFFFBEB), // amber-50
-          useMaterial3: true,
+          home: child ?? const MainScreen(),
         ),
-        home: const MainScreen(),
+        child: const MainScreen(),
       ),
     );
   }
@@ -365,139 +372,176 @@ class MainScreen extends StatelessWidget {
 
     return Scaffold(
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // 앱 타이틀
-                const Text(
-                  '먹다',
-                  style: TextStyle(
-                    fontSize: 48,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFFFB923C), // orange-400
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  '마음의 양식과 진짜 양식을',
-                  style: TextStyle(fontSize: 16, color: Colors.black54),
-                ),
-                const SizedBox(height: 48),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final viewportHeight = constraints.maxHeight;
+            // 이미지 높이: 화면 높이의 25%로 비례 조절
+            final maxImageHeight = MediaQuery.of(context).size.height * 0.25;
 
-                // 랜덤 추천 카드
-                Container(
-                  width: double.infinity,
-                  constraints: const BoxConstraints(maxWidth: 400),
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        const Color(0xFFFB923C).withOpacity(0.3), // orange-400
-                        const Color(0xFF818CF8).withOpacity(0.3), // indigo-400
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: viewportHeight),
+                child: IntrinsicHeight(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: 500.w),
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          left: 24.w,
+                          right: 24.w,
+                          bottom: 24.h,
+                        ),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // 앱 타이틀
+                            Text(
+                              '먹다',
+                              style: TextStyle(
+                                fontSize: 48.sp,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFFFB923C), // orange-400
+                              ),
+                            ),
+                            SizedBox(height: 8.h),
+                            Text(
+                              '마음의 양식과 진짜 양식을',
+                              style: TextStyle(
+                                fontSize: 16.sp,
+                                color: Colors.black54,
+                              ),
+                            ),
+                            SizedBox(height: 24.h),
+
+                            // 랜덤 추천 카드 (태블릿에서도 maxWidth 500.w 이내)
+                            Container(
+                              width: double.infinity,
+                              constraints: BoxConstraints(maxWidth: 500.w),
+                              padding: EdgeInsets.all(24.w),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    Color(0xFFFB923C).withValues(alpha: 0.3),
+                                    Color(0xFF818CF8).withValues(alpha: 0.3),
+                                  ],
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                ),
+                                borderRadius: BorderRadius.circular(30.r),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.1),
+                                    blurRadius: 20,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ],
+                              ),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '오늘은 이거 먹는 거 어떠세요?',
+                                    style: TextStyle(
+                                      fontSize: 20.sp,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  SizedBox(height: maxImageHeight * 0.08),
+
+                                  // 랜덤 아이템 이미지 (화면 높이 25% 비례)
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Image.network(
+                                      isBook
+                                          ? (randomItem as Book).imageUrl
+                                          : (randomItem as Food).imageUrl,
+                                      height: maxImageHeight,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) {
+                                        return Container(
+                                          height: maxImageHeight,
+                                          color: Colors.grey[300],
+                                          child: const Icon(
+                                            Icons.image,
+                                            size: 50,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                  SizedBox(height: 12.h),
+
+                                  // 아이템 정보
+                                  Text(
+                                    isBook
+                                        ? (randomItem as Book).title
+                                        : (randomItem as Food).name,
+                                    style: TextStyle(
+                                      fontSize: 24.sp,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  if (isBook) ...[
+                                    SizedBox(height: 6.h),
+                                    Text(
+                                      (randomItem as Book).author,
+                                      style: TextStyle(
+                                        fontSize: 16.sp,
+                                        color: Colors.black54,
+                                      ),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+
+                            SizedBox(height: 20.h),
+
+                            // 다른 거 추천받기 버튼 (하단 여백 확보)
+                            Padding(
+                              padding: EdgeInsets.only(bottom: 24.h),
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  provider.reset();
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const CategoryScreen(),
+                                    ),
+                                  );
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFFB923C),
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 48,
+                                    vertical: 16,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(30),
+                                  ),
+                                  elevation: 5,
+                                ),
+                                child: Text(
+                                  '다른 거 추천받기',
+                                  style: TextStyle(
+                                    fontSize: 18.sp,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(30),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
-                        blurRadius: 20,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      const Text(
-                        '오늘은 이거 먹는 거 어떠세요?',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 24),
-
-                      // 랜덤 아이템 이미지
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: Image.network(
-                          isBook
-                              ? (randomItem as Book).imageUrl
-                              : (randomItem as Food).imageUrl,
-                          height: 200,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              height: 200,
-                              color: Colors.grey[300],
-                              child: const Icon(Icons.image, size: 50),
-                            );
-                          },
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // 아이템 정보
-                      Text(
-                        isBook
-                            ? (randomItem as Book).title
-                            : (randomItem as Food).name,
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      if (isBook) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          (randomItem as Book).author,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            color: Colors.black54,
-                          ),
-                        ),
-                      ],
-                    ],
                   ),
                 ),
-
-                const SizedBox(height: 32),
-
-                // 다른 거 추천받기 버튼
-                ElevatedButton(
-                  onPressed: () {
-                    provider.reset();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const CategoryScreen()),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFB923C), // orange-400
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 48,
-                      vertical: 16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                    elevation: 5,
-                  ),
-                  child: const Text(
-                    '다른 거 추천받기',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -525,67 +569,81 @@ class CategoryScreen extends StatelessWidget {
         ),
       ),
       body: SafeArea(
-        child: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Text(
-                  '무엇을 추천받고 싶으세요?',
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 48),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: 500.w),
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 24.h),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              '무엇을 추천받고 싶으세요?',
+                              style: TextStyle(fontSize: 28.sp, fontWeight: FontWeight.bold),
+                              textAlign: TextAlign.center,
+                            ),
+                            SizedBox(height: 48.h),
 
-                // 마음의 양식 (책) 버튼
-                _CategoryButton(
-                  title: '마음의 양식',
-                  subtitle: '책',
-                  icon: Icons.menu_book,
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFF818CF8),
-                      Color(0xFFA78BFA),
-                    ], // indigo-400 to purple
-                  ),
-                  onTap: () {
-                    provider.selectCategory('book');
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const BookQuestionScreen(),
+                            // 마음의 양식 (책) 버튼
+                            _CategoryButton(
+                            title: '마음의 양식',
+                            subtitle: '책',
+                            icon: Icons.menu_book,
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFF818CF8),
+                                Color(0xFFA78BFA),
+                              ], // indigo-400 to purple
+                            ),
+                            onTap: () {
+                              provider.selectCategory('book');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const BookQuestionScreen(),
+                                ),
+                              );
+                            },
+                          ),
+
+                          SizedBox(height: 24.h),
+
+                          // 음식 버튼
+                          _CategoryButton(
+                            title: '진짜 양식',
+                            subtitle: '음식',
+                            icon: Icons.restaurant,
+                            gradient: const LinearGradient(
+                              colors: [
+                                Color(0xFFFB923C),
+                                Color(0xFFF59E0B),
+                              ], // orange-400 to amber
+                            ),
+                            onTap: () {
+                              provider.selectCategory('food');
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const QuestionScreen(isBook: false),
+                                ),
+                              );
+                            },
+                            ),
+                          ],
+                        ),
                       ),
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 24),
-
-                // 음식 버튼
-                _CategoryButton(
-                  title: '진짜 양식',
-                  subtitle: '음식',
-                  icon: Icons.restaurant,
-                  gradient: const LinearGradient(
-                    colors: [
-                      Color(0xFFFB923C),
-                      Color(0xFFF59E0B),
-                    ], // orange-400 to amber
+                    ),
                   ),
-                  onTap: () {
-                    provider.selectCategory('food');
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const QuestionScreen(isBook: false),
-                      ),
-                    );
-                  },
                 ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -615,14 +673,14 @@ class _CategoryButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(30),
       child: Container(
         width: double.infinity,
-        constraints: const BoxConstraints(maxWidth: 400),
-        padding: const EdgeInsets.all(32),
+        constraints: BoxConstraints(maxWidth: 500.w),
+        padding: EdgeInsets.all(32.w),
         decoration: BoxDecoration(
           gradient: gradient,
           borderRadius: BorderRadius.circular(30),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: Colors.black.withValues(alpha: 0.15),
               blurRadius: 20,
               offset: const Offset(0, 10),
             ),
@@ -638,15 +696,15 @@ class _CategoryButton extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      fontSize: 24,
+                    style: TextStyle(
+                      fontSize: 24.sp,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
                   ),
                   Text(
                     subtitle,
-                    style: const TextStyle(fontSize: 16, color: Colors.white70),
+                    style: TextStyle(fontSize: 16.sp, color: Colors.white70),
                   ),
                 ],
               ),
@@ -711,80 +769,97 @@ class _QuestionScreenState extends State<QuestionScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 진행 표시
-              Row(
-                children: List.generate(
-                  questions.length,
-                  (index) => Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 2),
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: index <= currentQuestionIndex
-                            ? const Color(0xFFFB923C)
-                            : Colors.grey[300],
-                        borderRadius: BorderRadius.circular(2),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: IntrinsicHeight(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: 500.w),
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(24.w, 24.h, 24.w, 48.h),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            // 진행 표시
+                            Row(
+                            children: List.generate(
+                              questions.length,
+                              (index) => Expanded(
+                                child: Container(
+                                  margin: const EdgeInsets.symmetric(horizontal: 2),
+                                  height: 4,
+                                  decoration: BoxDecoration(
+                                    color: index <= currentQuestionIndex
+                                        ? const Color(0xFFFB923C)
+                                        : Colors.grey[300],
+                                    borderRadius: BorderRadius.circular(2),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          SizedBox(height: 32.h),
+
+                          // 질문 번호
+                          Text(
+                            '질문 ${currentQuestionIndex + 1}/${questions.length}',
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: Colors.grey[600],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+
+                          SizedBox(height: 12.h),
+
+                          // 질문 텍스트
+                          Text(
+                            currentQuestion.question,
+                            style: TextStyle(
+                              fontSize: 28.sp,
+                              fontWeight: FontWeight.bold,
+                              height: 1.3,
+                            ),
+                          ),
+
+                          SizedBox(height: 48.h),
+
+                          // 선택지 버튼들 (부모 스크롤과 충돌 방지)
+                          ListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: currentQuestion.options.length,
+                            itemBuilder: (context, index) {
+                              return Padding(
+                                padding: EdgeInsets.only(bottom: 16.h),
+                                child: _OptionButton(
+                                  text: currentQuestion.options[index],
+                                  onTap: () => _handleAnswer(currentQuestion.tags[index]),
+                                ),
+                              );
+                            },
+                            ),
+                          ],
                       ),
                     ),
                   ),
+                  ),
                 ),
               ),
-
-              const SizedBox(height: 32),
-
-              // 질문 번호
-              Text(
-                '질문 ${currentQuestionIndex + 1}/${questions.length}',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // 질문 텍스트
-              Text(
-                currentQuestion.question,
-                style: const TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  height: 1.3,
-                ),
-              ),
-
-              const SizedBox(height: 48),
-
-              // 선택지 버튼들
-              Expanded(
-                child: ListView.builder(
-                  itemCount: currentQuestion.options.length,
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16.0),
-                      child: _OptionButton(
-                        text: currentQuestion.options[index],
-                        onTap: () => _handleAnswer(currentQuestion.tags[index]),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-// 선택지 버튼 위젯
+// 선택지 버튼 위젯 (QuestionScreen)
 class _OptionButton extends StatelessWidget {
   final String text;
   final VoidCallback onTap;
@@ -803,12 +878,12 @@ class _OptionButton extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(30),
           border: Border.all(
-            color: const Color(0xFFFB923C).withOpacity(0.3),
+            color: const Color(0xFFFB923C).withValues(alpha: 0.3),
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -816,7 +891,7 @@ class _OptionButton extends StatelessWidget {
         ),
         child: Text(
           text,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+          style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.w500),
           textAlign: TextAlign.center,
         ),
       ),
@@ -853,97 +928,105 @@ class ResultScreen extends StatelessWidget {
         ),
       ),
       body: SafeArea(
-        child: Column(
-          children: [
-            // 결과 헤더
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-                  const Text(
-                    '당신을 위한 추천',
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '${provider.userTags.length}개의 답변을 바탕으로 골랐어요',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 16),
-                  // 스와이프 안내
-                  // Row(
-                  //   mainAxisAlignment: MainAxisAlignment.center,
-                  //   children: [
-                  //     Icon(Icons.swipe, size: 20, color: Colors.grey[600]),
-                  //     const SizedBox(width: 8),
-                  //     Text(
-                  //       '좌우로 스와이프하세요',
-                  //       style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                  //     ),
-                  //   ],
-                  // ),
-                ],
-              ),
-            ),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final viewportHeight = constraints.maxHeight;
+            // 카드 영역 높이: 화면의 45% 이내 (작은 기기에서 스크롤 가능하도록)
+            final cardAreaHeight = viewportHeight * 0.45;
 
-            const SizedBox(height: 24),
+            return SingleChildScrollView(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: viewportHeight),
+                child: IntrinsicHeight(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: 500.w),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // 결과 헤더
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 24.w),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(height: 16.h),
+                                Text(
+                                  '당신을 위한 추천',
+                                  style: TextStyle(fontSize: 32.sp, fontWeight: FontWeight.bold),
+                                ),
+                                SizedBox(height: 8.h),
+                                Text(
+                                  '${provider.userTags.length}개의 답변을 바탕으로 골랐어요',
+                                  style: TextStyle(fontSize: 16.sp, color: Colors.grey[600]),
+                                ),
+                                SizedBox(height: 16.h),
+                              ],
+                            ),
+                          ),
 
-            // PageView로 카드 표시
-            Expanded(
-              child: Center(
-                child: PageView.builder(
-                  itemCount: isBook
-                      ? recommendedBooks.length
-                      : recommendedFoods.length,
-                  padEnds: true,
-                  controller: PageController(viewportFraction: 0.85),
-                  itemBuilder: (context, index) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: isBook
-                            ? _BookResultCard(book: recommendedBooks[index])
-                            : _FoodResultCard(food: recommendedFoods[index]),
-                      ),
-                    );
-                  },
+                        SizedBox(height: 24.h),
+
+                        // PageView로 카드 표시 (고정 높이로 스크롤 내부 배치)
+                        SizedBox(
+                          height: cardAreaHeight,
+                          child: Center(
+                            child: PageView.builder(
+                              itemCount: isBook
+                                  ? recommendedBooks.length
+                                  : recommendedFoods.length,
+                              padEnds: true,
+                              controller: PageController(viewportFraction: 0.85),
+                              itemBuilder: (context, index) {
+                                return Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                    child: isBook
+                                        ? _BookResultCard(book: recommendedBooks[index])
+                                        : _FoodResultCard(food: recommendedFoods[index]),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(height: 24.h),
+
+                        // 처음으로 버튼 (하단 패딩으로 내비/홈바 가림 방지)
+                        Padding(
+                          padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 24.h),
+                          child: ElevatedButton(
+                            onPressed: () {
+                              provider.reset();
+                              Navigator.of(context).popUntil((route) => route.isFirst);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF818CF8), // indigo-400
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 48.w,
+                                vertical: 16.h,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30.r),
+                              ),
+                              elevation: 5,
+                            ),
+                            child: Text(
+                              '처음으로 돌아가기',
+                              style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
                 ),
               ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // 처음으로 버튼
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: ElevatedButton(
-                onPressed: () {
-                  provider.reset();
-                  Navigator.of(context).popUntil((route) => route.isFirst);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF818CF8), // indigo-400
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 48,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  elevation: 5,
-                ),
-                child: const Text(
-                  '처음으로 돌아가기',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 24),
-          ],
+            );
+          },
         ),
       ),
     );
@@ -980,7 +1063,7 @@ class _BookResultCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -989,18 +1072,18 @@ class _BookResultCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // 책 이미지 - 더 크게!
+          // 책 이미지 (화면 높이 25% 비례)
           ClipRRect(
             borderRadius: BorderRadius.circular(15),
             child: Image.network(
               book.imageUrl,
               width: 160,
-              height: 240,
+              height: MediaQuery.of(context).size.height * 0.25,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
                   width: 160,
-                  height: 240,
+                  height: MediaQuery.of(context).size.height * 0.25,
                   color: Colors.grey[300],
                   child: const Icon(Icons.book, size: 60),
                 );
@@ -1013,25 +1096,25 @@ class _BookResultCard extends StatelessWidget {
           // 제목
           Text(
             book.title,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
 
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
 
           // 작가
           Text(
             book.author,
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 16.sp, color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
 
-          // 명대사
+          // 명대사 (높이 화면 비율로 제한)
           Container(
-            height: 100,
-            padding: const EdgeInsets.all(16),
+            height: MediaQuery.of(context).size.height * 0.12,
+            padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
               color: const Color(0xFFFFFBEB),
               borderRadius: BorderRadius.circular(15),
@@ -1041,7 +1124,7 @@ class _BookResultCard extends StatelessWidget {
                 child: Text(
                   '"${book.famousLine}"',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 14.sp,
                     fontStyle: FontStyle.italic,
                     color: Colors.grey[800],
                     height: 1.4,
@@ -1097,7 +1180,7 @@ class _FoodResultCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -1106,18 +1189,18 @@ class _FoodResultCard extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // 음식 이미지
+          // 음식 이미지 (화면 높이 25% 비례)
           ClipRRect(
             borderRadius: BorderRadius.circular(15),
             child: Image.network(
               food.imageUrl,
               width: 160,
-              height: 240,
+              height: MediaQuery.of(context).size.height * 0.25,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
                   width: 160,
-                  height: 240,
+                  height: MediaQuery.of(context).size.height * 0.25,
                   color: Colors.grey[300],
                   child: const Icon(Icons.restaurant, size: 60),
                 );
@@ -1130,25 +1213,25 @@ class _FoodResultCard extends StatelessWidget {
           // 음식 이름
           Text(
             food.name,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            style: TextStyle(fontSize: 24.sp, fontWeight: FontWeight.bold),
             textAlign: TextAlign.center,
           ),
 
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
 
           // 브랜드 (없으면 빈 공간 유지)
           Text(
             food.brand != null ? '판매: ${food.brand}' : '',
-            style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 16.sp, color: Colors.grey[600]),
             textAlign: TextAlign.center,
           ),
 
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
 
-          // 음식 태그
+          // 음식 태그 (높이 화면 비율로 제한)
           Container(
-            height: 100,
-            padding: const EdgeInsets.all(16),
+            height: MediaQuery.of(context).size.height * 0.12,
+            padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
               color: const Color(0xFFFFFBEB),
               borderRadius: BorderRadius.circular(15),
@@ -1158,7 +1241,7 @@ class _FoodResultCard extends StatelessWidget {
                 child: Text(
                   '"${food.tags.join(', ')}"',
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 14.sp,
                     fontStyle: FontStyle.italic,
                     color: Colors.grey[800],
                     height: 1.4,
