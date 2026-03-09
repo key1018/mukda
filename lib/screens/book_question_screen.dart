@@ -1,5 +1,5 @@
-// 책 추천을 위한 질문 화면 (실제 질문 트리 사용)
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../question_tree.dart';
 import '../data/book/all_book_trees.dart';
@@ -15,24 +15,17 @@ class BookQuestionScreen extends StatefulWidget {
 
 class _BookQuestionScreenState extends State<BookQuestionScreen> {
   String currentNodeKey = 'book_root';
-  List<String> questionHistory = []; // 질문 히스토리
-  List<String> collectedBookTags = []; // 수집된 책 태그
+  List<String> questionHistory = [];
+  List<String> collectedBookTags = [];
 
   QuestionNode? get currentNode => allBookTrees[currentNodeKey];
 
   void _handleAnswer(Option option) {
-    // 히스토리에 현재 노드 추가
     questionHistory.add(currentNodeKey);
-
-    // bookTags가 있으면 수집
     if (option.bookTags != null && option.bookTags!.isNotEmpty) {
       collectedBookTags.addAll(option.bookTags!);
     }
-
-    // 다음 노드로 이동
     String nextKey = option.nextNodeKey;
-
-    // 'end'면 결과 화면으로 (마지막 선택 옵션 텍스트 전달 → 장르 스캐너용)
     if (nextKey == 'end') {
       Navigator.pushReplacement(
         context,
@@ -44,9 +37,7 @@ class _BookQuestionScreenState extends State<BookQuestionScreen> {
         ),
       );
     } else {
-      setState(() {
-        currentNodeKey = nextKey;
-      });
+      setState(() => currentNodeKey = nextKey);
     }
   }
 
@@ -54,28 +45,22 @@ class _BookQuestionScreenState extends State<BookQuestionScreen> {
     if (questionHistory.isEmpty) {
       Navigator.pop(context);
     } else {
-      setState(() {
-        currentNodeKey = questionHistory.removeLast();
-      });
+      setState(() => currentNodeKey = questionHistory.removeLast());
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final node = currentNode;
+    if (node == null)
+      return const Scaffold(body: Center(child: Text('질문 데이터 오류')));
 
-    if (node == null) {
-      return Scaffold(
-        appBar: AppBar(),
-        body: const Center(child: Text('오류: 질문을 찾을 수 없습니다.')),
-      );
-    }
-
-    // 진행도 계산 (depth 기반 - depth 7까지)
-    int depth = _getDepthFromNodeKey(currentNodeKey);
-    double progress = depth / 7.0;
+    final depth = _getDepthFromNodeKey(currentNodeKey);
+    final progress = depth / 7.0;
 
     return Scaffold(
+      // Scaffold 배경색을 메인과 통일 (디자인 일관성)
+      backgroundColor: const Color(0xFFFFFBEB),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -85,102 +70,90 @@ class _BookQuestionScreenState extends State<BookQuestionScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 진행 표시
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  backgroundColor: Colors.grey[300],
-                  color: const Color(0xFF818CF8), // indigo-400
-                  minHeight: 8,
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              // 질문 번호 (depth 표시)
-              Text(
-                '$depth/7',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // 질문 텍스트
-              SizedBox(
-                height: 140,
-                child: SingleChildScrollView(
-                  child: Align(
-                    // 텍스트가 짧아도 상단에 붙게 함
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      node.question,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        height: 1.4,
+        // [수정 핵심 1] SingleChildScrollView를 최상단에 두고 다른 제약을 최소화합니다.
+        child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(),
+          child: Center(
+            // 가로 중앙 정렬만 담당
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: 500.w), // 태블릿용 폭 제한
+              child: Padding(
+                // [수정 핵심 2] 위쪽 여백은 줄이고 하단 여백은 아주 넉넉히(80.h) 줍니다.
+                padding: EdgeInsets.fromLTRB(24.w, 10.h, 24.w, 80.h),
+                child: Column(
+                  // [수정 핵심 3] MainAxisAlignment.center를 절대 쓰지 않고 상단(start)부터 배치합니다.
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 프로그레스 바
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(4.r),
+                      child: LinearProgressIndicator(
+                        value: progress,
+                        backgroundColor: Colors.grey[300],
+                        color: const Color(0xFF818CF8),
+                        minHeight: 6.h,
                       ),
                     ),
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 32),
-
-              SizedBox(
-                height: 360,
-                child: ListView.builder(
-                  key: ValueKey(currentNodeKey),
-                  physics: depth == 1
-                      ? const ClampingScrollPhysics()
-                      : const NeverScrollableScrollPhysics(),
-                  itemCount: node.options.length,
-                  itemBuilder: (context, index) {
-                    final option = node.options[index];
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 10.0),
-                      child: _OptionButton(
-                        text: option.text,
-                        onTap: () => _handleAnswer(option),
+                    SizedBox(height: 24.h),
+                    Text(
+                      '$depth/7',
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: Colors.grey[600],
+                        fontWeight: FontWeight.w500,
                       ),
-                    );
-                  },
+                    ),
+                    SizedBox(height: 12.h),
+                    // 질문 텍스트 - 높이 제한 없이 자연스럽게 늘어나게 함
+                    Text(
+                      node.question,
+                      style: TextStyle(
+                        fontSize: 22.sp,
+                        fontWeight: FontWeight.bold,
+                        height: 1.3,
+                        color: Colors.black87,
+                      ),
+                    ),
+                    SizedBox(height: 32.h),
+                    // 선택지 리스트 - shrinkWrap으로 전체 스크롤의 일부가 되게 함
+                    ListView.builder(
+                      key: ValueKey(currentNodeKey),
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: node.options.length,
+                      itemBuilder: (context, index) {
+                        final option = node.options[index];
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: 12.h),
+                          child: _OptionButton(
+                            text: option.text,
+                            onTap: () => _handleAnswer(option),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 20),
-            ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  // 노드 키에서 depth 추출
   int _getDepthFromNodeKey(String key) {
     if (key == 'book_root') return 1;
-
-    // book_sad_2_1 형식에서 숫자 추출
-    RegExp regExp = RegExp(r'_(\d+)_');
-    Match? match = regExp.firstMatch(key);
-
+    final match = RegExp(r'_(\d+)_').firstMatch(key);
     if (match != null && match.groupCount >= 1) {
       return int.tryParse(match.group(1)!) ?? 1;
     }
-
     return 1;
   }
 }
 
-// 선택지 버튼 위젯
+// ==================== 선택지 버튼 (더 콤팩트하게 수정) ====================
 class _OptionButton extends StatelessWidget {
   final String text;
   final VoidCallback onTap;
@@ -191,20 +164,21 @@ class _OptionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(20.r),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+        // [수정 핵심 4] 버튼의 세로 여백을 줄여 한 화면에 더 많은 버튼이 보이게 합니다.
+        padding: EdgeInsets.symmetric(vertical: 14.h, horizontal: 20.w),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(20.r),
           border: Border.all(
-            color: const Color(0xFF818CF8).withOpacity(0.3), // indigo
+            color: const Color(0xFF818CF8).withValues(alpha: 0.3),
             width: 2,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -212,7 +186,11 @@ class _OptionButton extends StatelessWidget {
         ),
         child: Text(
           text,
-          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+          style: TextStyle(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
           textAlign: TextAlign.center,
         ),
       ),
@@ -220,33 +198,10 @@ class _OptionButton extends StatelessWidget {
   }
 }
 
-// 앱 내부 장르 사전 (검색어에는 넣지 않고, 수신 결과 정렬용)
-const List<String> _genres = [
-  '소설',
-  '에세이',
-  '시',
-  '만화',
-  '동화',
-  '철학',
-  '인문',
-  '과학',
-  '역사',
-  'SF',
-  '스릴러',
-  '추리',
-  '판타지',
-  '사진집',
-  '산문',
-  '수필',
-  '단상집',
-  '그림책',
-];
-
-// 책 결과 화면 (넓은 키워드 검색 + 앱 내부 장르/태그 정렬)
+// ==================== 결과 화면 (BookResultScreen) ====================
 class BookResultScreen extends StatefulWidget {
   final List<String> bookTags;
   final String? lastOptionText;
-
   const BookResultScreen({
     super.key,
     required this.bookTags,
@@ -266,29 +221,18 @@ class _BookResultScreenState extends State<BookResultScreen> {
     _booksFuture = _loadBooks();
   }
 
-  List<String> _extractTargetGenres(String text) {
-    final result = <String>[];
-    for (final genre in _genres) {
-      if (text.contains(genre)) result.add(genre);
-    }
-    return result;
-  }
-
   Future<List<Book>> _loadBooks() async {
-    final text = widget.lastOptionText?.trim() ?? '';
-    final targetGenres = _extractTargetGenres(text);
     final keyword = widget.bookTags.take(2).join(' ').trim();
-    final searchKeyword = keyword.isEmpty ? '치유' : keyword;
     return searchBooksByKeyword(
-      searchKeyword,
+      keyword.isEmpty ? '치유' : keyword,
       bookTags: widget.bookTags,
-      targetGenres: targetGenres,
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFFFFBEB),
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -298,275 +242,94 @@ class _BookResultScreenState extends State<BookResultScreen> {
               Navigator.of(context).popUntil((route) => route.isFirst),
         ),
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-                  const Text(
-                    '당신을 위한 책 추천',
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.bookTags.isNotEmpty
-                        ? '총 ${widget.bookTags.length}개의 태그를 바탕으로 골랐어요'
-                        : '검색어 "치유"로 골랐어요',
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                  ),
-                  if (widget.bookTags.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: widget.bookTags.take(10).map((tag) {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF818CF8).withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: Text(
-                            tag,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Color(0xFF818CF8),
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: FutureBuilder<List<Book>>(
-                future: _booksFuture,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFF818CF8),
-                      ),
-                    );
-                  }
-                  if (snapshot.hasError) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              '도서를 불러오지 못했어요',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.grey[800],
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              snapshot.error.toString(),
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-                  final books = snapshot.data ?? [];
-                  if (books.isEmpty) {
-                    return const Center(child: Text('추천할 책을 찾지 못했습니다.'));
-                  }
-                  return PageView.builder(
-                    itemCount: books.length,
-                    padEnds: true,
-                    controller: PageController(viewportFraction: 0.85),
-                    itemBuilder: (context, index) {
-                      return Center(
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: _BookResultCard(book: books[index]),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 24),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: ElevatedButton(
-                onPressed: () =>
-                    Navigator.of(context).popUntil((route) => route.isFirst),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF818CF8),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 48,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  elevation: 5,
-                ),
-                child: const Text(
-                  '처음으로 돌아가기',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-        ),
+      body: FutureBuilder<List<Book>>(
+        future: _booksFuture,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(
+              child: CircularProgressIndicator(color: Color(0xFF818CF8)),
+            );
+          }
+          final books = snapshot.data ?? [];
+          if (books.isEmpty) return const Center(child: Text('추천 결과가 없습니다.'));
+
+          return PageView.builder(
+            itemCount: books.length,
+            controller: PageController(viewportFraction: 0.85),
+            itemBuilder: (context, index) {
+              return Center(child: _BookResultCard(book: books[index]));
+            },
+          );
+        },
       ),
     );
   }
 }
 
-// 책 결과 카드 (탭 시 알라딘 상세 페이지 열기)
+// ==================== 결과 카드 위젯 ====================
 class _BookResultCard extends StatelessWidget {
   final Book book;
-
   const _BookResultCard({required this.book});
-
-  Future<void> _openLink(BuildContext context) async {
-    if (book.link.isEmpty) return;
-    final uri = Uri.tryParse(book.link);
-    if (uri == null) return;
-    try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    } catch (e) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('링크를 열 수 없어요: $e')));
-      }
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
-    final card = Container(
-      margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.all(24),
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 10.w, vertical: 20.h),
+      padding: EdgeInsets.all(24.w),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(30),
+        borderRadius: BorderRadius.circular(30.r),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
+            color: Colors.black12,
+            blurRadius: 15.r,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          // 책 이미지 (고정 크기)
           ClipRRect(
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(15.r),
             child: Image.network(
               book.imageUrl,
-              width: 160,
-              height: 240,
+              height: MediaQuery.of(context).size.height * 0.25,
               fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  width: 160,
-                  height: 240,
-                  color: Colors.grey[300],
-                  child: const Icon(Icons.book, size: 60),
-                );
-              },
+              errorBuilder: (context, error, stackTrace) => Container(
+                height: 150.h,
+                color: Colors.grey[200],
+                child: const Icon(Icons.book),
+              ),
             ),
           ),
-
-          const SizedBox(height: 20),
-
-          // 텍스트 영역: 남은 공간만 사용, 초과 시 카드 내부 스크롤
+          SizedBox(height: 20.h),
+          Text(
+            book.title,
+            style: TextStyle(fontSize: 18.sp, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            book.author,
+            style: TextStyle(fontSize: 14.sp, color: Colors.grey[600]),
+          ),
+          SizedBox(height: 16.h),
           Expanded(
             child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // 제목 (최대 2줄, 초과 시 말줄임)
-                  Text(
-                    book.title,
-                    style: const TextStyle(
-                      fontSize: 17,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-
-                  const SizedBox(height: 8),
-
-                  // 작가 (최대 2줄, 초과 시 말줄임)
-                  Text(
-                    book.author,
-                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // 명대사 (전체 내용 표시, 스크롤로 확인)
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFFFFBEB),
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                    child: Text(
-                      '"${book.famousLine}"',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontStyle: FontStyle.italic,
-                        color: Colors.grey[800],
-                        height: 1.4,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
+              child: Text(
+                '"${book.famousLine}"',
+                style: TextStyle(
+                  fontSize: 14.sp,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.black87,
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
           ),
         ],
       ),
-    );
-    if (book.link.isEmpty) return card;
-    return InkWell(
-      onTap: () => _openLink(context),
-      borderRadius: BorderRadius.circular(30),
-      child: card,
     );
   }
 }
